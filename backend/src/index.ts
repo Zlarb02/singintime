@@ -8,6 +8,8 @@ import fs from 'fs'
 import authRoutes from './routes/auth.js'
 import songsRoutes from './routes/songs.js'
 import galleryRoutes from './routes/gallery.js'
+import profileRoutes from './routes/profile.js'
+import adminRoutes from './routes/admin.js'
 
 dotenv.config()
 
@@ -43,6 +45,8 @@ app.use('/uploads', express.static(uploadsDir))
 app.use('/api/auth', authRoutes)
 app.use('/api/songs', songsRoutes)
 app.use('/api/gallery', galleryRoutes)
+app.use('/api/profile', profileRoutes)
+app.use('/api/admin', adminRoutes)
 
 // Health check
 app.get('/api/health', (_req, res) => {

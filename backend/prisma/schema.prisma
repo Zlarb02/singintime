@@ -16,6 +16,13 @@ model User {
   resetExpires DateTime?
   songs        Song[]
   createdAt    DateTime  @default(now())
+
+  // Storage limits (in bytes)
+  storageUsed  Int       @default(0)        // Current usage
+  storageLimit Int       @default(209715200) // 200 MB default
+
+  // Admin
+  isAdmin      Boolean   @default(false)
 }
 
 model Song {
@@ -42,6 +49,7 @@ model Song {
   timeSignature String   @default("4/4")
   beats         String   @default("[]")
   audioPath     String?
+  audioSize     Int      @default(0)  // File size in bytes
 
   // Métadonnées
   isPublic      Boolean  @default(false)

@@ -45,7 +45,22 @@ export function Header() {
                 + nouveau
               </Link>
               <div className="flex items-center gap-2 ml-2 pl-2 border-l border-[var(--color-border)]">
-                <span className="text-[var(--color-text-faint)] text-sm hidden sm:inline">{user?.username}</span>
+                {user?.isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="text-red-400 hover:text-red-300 text-sm transition-colors"
+                    title="Administration"
+                  >
+                    admin
+                  </Link>
+                )}
+                <Link
+                  to="/profile"
+                  className="text-[var(--color-text-faint)] hover:text-amber-500 text-sm hidden sm:inline transition-colors"
+                  title="Mon compte"
+                >
+                  {user?.username}
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="text-[var(--color-text-faint)] hover:text-[var(--color-text-secondary)] text-sm transition-colors"

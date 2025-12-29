@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken'
 
 export interface AuthRequest extends Request {
   userId?: string
+  userStorageRemaining?: number
+  globalStorageRemaining?: number
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {

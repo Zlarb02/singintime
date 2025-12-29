@@ -127,6 +127,7 @@ export interface Song {
 export interface User {
   id: string
   username: string
+  isAdmin?: boolean
 }
 
 export interface AuthResponse {

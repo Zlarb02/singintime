@@ -22,13 +22,19 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     (headers as Record<string, string>)['Content-Type'] = 'application/json'
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...fetchOptions,
-    headers,
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+    })
+  } catch (networkError) {
+    // Server unreachable (network error, CORS, etc.)
+    throw new Error('Impossible de contacter le serveur. Vérifie ta connexion ou réessaie plus tard.')
+  }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erreur réseau' }))
+    const error = await response.json().catch(() => ({ error: 'Erreur serveur' }))
     throw new Error(error.error || 'Erreur serveur')
   }
 

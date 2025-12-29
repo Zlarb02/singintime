@@ -10,6 +10,9 @@ import { ForgotPassword } from './components/Auth/ForgotPassword'
 import { ResetPassword } from './components/Auth/ResetPassword'
 import { PublicGallery } from './components/Gallery/PublicGallery'
 import { UserLibrary } from './components/Gallery/UserLibrary'
+import { ProfilePage } from './pages/ProfilePage'
+import { LegalPage } from './pages/LegalPage'
+import { AdminPage } from './pages/AdminPage'
 
 function App() {
   return (
@@ -24,10 +27,13 @@ function App() {
             <Route path="/view/:id" element={<ViewerPage />} />
             <Route path="/gallery" element={<PublicGallery />} />
             <Route path="/my-songs" element={<UserLibrary />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/legal" element={<LegalPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
         <GlobalTransportBar />

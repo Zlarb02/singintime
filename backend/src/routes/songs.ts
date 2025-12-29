@@ -1,7 +1,9 @@
 import { Router, Response } from 'express'
+import fs from 'fs'
+import path from 'path'
 import { prisma } from '../lib/prisma.js'
 import { authMiddleware, AuthRequest } from '../middleware/auth.js'
-import { upload } from '../middleware/upload.js'
+import { upload, checkStorageLimits, updateUserStorage, decreaseUserStorage } from '../middleware/upload.js'
 
 const router = Router()
 
@@ -176,7 +178,7 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 })
 
-// Delete song
+// Delete song (with storage cleanup)
 router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const existing = await prisma.song.findFirst({
@@ -190,6 +192,18 @@ router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) =>
       return res.status(404).json({ error: 'Chanson non trouvée' })
     }
 
+    // Delete audio file if exists
+    if (existing.audioPath) {
+      const filePath = path.join('./uploads', path.basename(existing.audioPath))
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+      }
+      // Decrease storage
+      if (existing.audioSize > 0) {
+        await decreaseUserStorage(req.userId!, existing.audioSize)
+      }
+    }
+
     await prisma.song.delete({ where: { id: req.params.id } })
     res.status(204).send()
   } catch (error) {
@@ -198,8 +212,8 @@ router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) =>
   }
 })
 
-// Upload audio (updated for v2)
-router.post('/:id/audio', authMiddleware, upload.single('audio'), async (req: AuthRequest, res: Response) => {
+// Upload audio (updated for v2 with storage tracking)
+router.post('/:id/audio', authMiddleware, checkStorageLimits, upload.single('audio'), async (req: AuthRequest, res: Response) => {
   try {
     const existing = await prisma.song.findFirst({
       where: {
@@ -216,6 +230,30 @@ router.post('/:id/audio', authMiddleware, upload.single('audio'), async (req: Au
       return res.status(400).json({ error: 'Fichier audio requis' })
     }
 
+    const fileSize = req.file.size
+
+    // Check if file exceeds remaining space
+    if (req.userStorageRemaining && fileSize > req.userStorageRemaining) {
+      // Delete uploaded file
+      fs.unlinkSync(req.file.path)
+      return res.status(413).json({
+        error: 'Fichier trop volumineux',
+        message: `Ce fichier (${Math.round(fileSize / 1024 / 1024)} Mo) dépasse ton espace restant.`
+      })
+    }
+
+    // Delete old audio file if exists
+    if (existing.audioPath) {
+      const oldFilePath = path.join('./uploads', path.basename(existing.audioPath))
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath)
+        // Decrease old file size from storage
+        if (existing.audioSize > 0) {
+          await decreaseUserStorage(req.userId!, existing.audioSize)
+        }
+      }
+    }
+
     const audioPath = `/uploads/${req.file.filename}`
 
     // Get offset from request body if provided
@@ -228,13 +266,18 @@ router.post('/:id/audio', authMiddleware, upload.single('audio'), async (req: Au
       volumeNormalize: false
     }
 
+    // Update song with new audio
     const song = await prisma.song.update({
       where: { id: req.params.id },
       data: {
-        audioPath, // Legacy field
-        audioConfig: JSON.stringify(audioConfig) // v2 field
+        audioPath,
+        audioSize: fileSize,
+        audioConfig: JSON.stringify(audioConfig)
       }
     })
+
+    // Update user storage
+    await updateUserStorage(req.userId!, fileSize)
 
     res.json(song)
   } catch (error) {

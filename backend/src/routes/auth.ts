@@ -6,10 +6,21 @@ import { prisma } from '../lib/prisma.js'
 
 const router = Router()
 
+// Maximum users allowed (8 GB total / 200 MB per user = 40 users)
+const MAX_USERS = 40
+
 // Inscription - pseudo + mot de passe, email optionnel
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { username, password, email } = req.body
+
+    // Check if max users reached
+    const userCount = await prisma.user.count()
+    if (userCount >= MAX_USERS) {
+      return res.status(503).json({
+        error: "Désolé, l'application a atteint son nombre maximum d'utilisateurs (40). Tu peux quand même utiliser l'éditeur, mais sans pouvoir sauvegarder ton travail."
+      })
+    }
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Choisis un pseudo et un mot de passe' })
@@ -106,7 +117,8 @@ router.post('/login', async (req: Request, res: Response) => {
       user: {
         id: user.id,
         username: user.username,
-        hasEmail: !!user.email
+        hasEmail: !!user.email,
+        isAdmin: user.isAdmin
       }
     })
   } catch (error) {
@@ -216,7 +228,7 @@ router.get('/me', async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, username: true, email: true }
+      select: { id: true, username: true, email: true, isAdmin: true }
     })
 
     if (!user) {
@@ -227,7 +239,8 @@ router.get('/me', async (req: Request, res: Response) => {
       user: {
         id: user.id,
         username: user.username,
-        hasEmail: !!user.email
+        hasEmail: !!user.email,
+        isAdmin: user.isAdmin
       }
     })
   } catch {

@@ -104,8 +104,34 @@ export function HomePage() {
       {/* Footer minimaliste */}
       <footer className="py-6 text-center border-t border-[var(--color-border)]/30">
         <p className="text-xs text-[var(--color-text-faint)]">
-          gratuit & open source — pas de tracking, pas de données collectées
+          gratuit & open source — pas de tracking
         </p>
+        <div className="flex items-center justify-center gap-3 mt-2">
+          <a
+            href="https://pogodev.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-[var(--color-text-faint)] hover:text-[var(--color-text-muted)]"
+          >
+            pogodev.com
+          </a>
+          <span className="text-[var(--color-text-faint)]">·</span>
+          <a
+            href="https://pogodev.com/#contact"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-[var(--color-text-faint)] hover:text-[var(--color-text-muted)]"
+          >
+            contact
+          </a>
+          <span className="text-[var(--color-text-faint)]">·</span>
+          <Link
+            to="/legal"
+            className="text-xs text-[var(--color-text-faint)] hover:text-[var(--color-text-muted)]"
+          >
+            mentions légales
+          </Link>
+        </div>
       </footer>
     </div>
   )
