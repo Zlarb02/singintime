@@ -59,31 +59,33 @@ export function ViewerPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col pb-16">
+    <div className="flex-1 flex flex-col pb-16 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="bg-[var(--color-bg-secondary)]/50 border-b border-[var(--color-border)]/50 px-4 py-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-bold text-[var(--color-text-primary)]">{song.title}</h1>
-              {song.user && (
-                <p className="text-[var(--color-text-muted)] text-sm mt-1">par {song.user.username}</p>
-              )}
-            </div>
+      <div className="bg-[var(--color-bg-secondary)]/50 border-b border-[var(--color-border)]/50 px-4 py-3 shrink-0">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-lg font-medium text-[var(--color-text-primary)] truncate">{song.title}</h1>
+            {song.user && (
+              <p className="text-[var(--color-text-muted)] text-sm">par {song.user.username}</p>
+            )}
+          </div>
 
-            <div className="flex items-center gap-4 text-sm text-[var(--color-text-muted)]">
-              <span className="font-mono">{defaultTempo} BPM</span>
-              <span className="font-mono">{defaultTimeSignature}</span>
-            </div>
+          <div className="flex items-center gap-4 text-sm text-[var(--color-text-muted)] shrink-0">
+            <span className="font-mono">{defaultTempo} BPM</span>
+            <span className="font-mono">{defaultTimeSignature}</span>
+            <Link
+              to="/gallery"
+              className="px-3 py-1.5 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded text-[var(--color-text-secondary)] hover:border-amber-500/50 transition-colors"
+            >
+              Galerie
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Measure grid */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-5xl mx-auto">
-          <MeasureGrid readOnly />
-        </div>
+      {/* Main content - same structure as EditorPage */}
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <MeasureGrid readOnly />
       </div>
     </div>
   )
