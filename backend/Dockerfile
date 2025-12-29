@@ -35,4 +35,5 @@ RUN mkdir -p uploads prisma/data
 
 EXPOSE 3001
 
-CMD ["npm", "start"]
+# Run migrations and start server
+CMD ["sh", "-c", "npx prisma db push && npm start"]
