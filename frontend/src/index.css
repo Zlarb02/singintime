@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* Theme variables */
+:root {
+  /* Colors - Dark theme (default) */
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-faint: #64748b;
+  --color-border: #334155;
+  --color-border-light: #475569;
+  --color-accent: #f59e0b;
+  --color-accent-hover: #d97706;
+  --color-accent-glow: rgba(245, 158, 11, 0.4);
+
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light theme - improved contrast */
+:root.light {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #1e293b;
+  --color-text-muted: #475569;
+  --color-text-faint: #64748b;
+  --color-border: #cbd5e1;
+  --color-border-light: #94a3b8;
+  --color-accent: #d97706;
+  --color-accent-hover: #b45309;
+  --color-accent-glow: rgba(217, 119, 6, 0.3);
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-bg-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar - Dark */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Beat cell animations with amber glow */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--color-accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px var(--color-accent-glow);
+  }
+}
+
+.beat-active {
+  animation: pulse-glow 0.5s ease-in-out;
+}
+
+/* Smooth scroll for playback */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* Better focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+}

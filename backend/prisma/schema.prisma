@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String?   @unique
+  password     String
+  resetToken   String?
+  resetExpires DateTime?
+  songs        Song[]
+  createdAt    DateTime  @default(now())
+}
+
+model Song {
+  id            String   @id @default(uuid())
+  title         String
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // v2: Configuration globale
+  defaultTempo         Float    @default(120)
+  defaultTimeSignature String   @default("4/4")
+
+  // v2: Contenu (mesures avec syllabes)
+  measures      String   @default("[]")  // JSON: Measure[]
+
+  // v2: Configuration audio
+  audioConfig   String?  // JSON: AudioConfig | null
+
+  // v2: Copyright
+  copyrightAcknowledged Boolean @default(false)
+
+  // Legacy fields (v1) - kept for migration
+  tempo         Float    @default(120)
+  timeSignature String   @default("4/4")
+  beats         String   @default("[]")
+  audioPath     String?
+
+  // Métadonnées
+  isPublic      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

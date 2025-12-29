@@ -1,0 +1,44 @@
+services:
+  frontend:
+    image: ghcr.io/${GITHUB_REPO}/frontend:latest
+    restart: unless-stopped
+    networks:
+      - traefik-public
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.singintime.rule=Host(`sit.pogodev.com`)"
+      - "traefik.http.routers.singintime.entrypoints=websecure"
+      - "traefik.http.routers.singintime.tls.certresolver=letsencrypt"
+      - "traefik.http.services.singintime.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-public"
+
+  backend:
+    image: ghcr.io/${GITHUB_REPO}/backend:latest
+    restart: unless-stopped
+    networks:
+      - traefik-public
+    volumes:
+      - singintime-data:/app/prisma/data
+      - singintime-uploads:/app/uploads
+    environment:
+      - DATABASE_URL=file:./prisma/data/singintime.db
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3001
+      - FRONTEND_URL=https://sit.pogodev.com
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.singintime-api.rule=Host(`api.sit.pogodev.com`)"
+      - "traefik.http.routers.singintime-api.entrypoints=websecure"
+      - "traefik.http.routers.singintime-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.singintime-api.loadbalancer.server.port=3001"
+      - "traefik.docker.network=traefik-public"
+
+networks:
+  traefik-public:
+    external: true
+
+volumes:
+  singintime-data:
+  singintime-uploads:
