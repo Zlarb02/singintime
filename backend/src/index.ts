@@ -51,7 +51,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
-app.use(express.json())
+app.use(express.json({ limit: '10mb' }))
 
 // Serve uploaded files
 app.use('/uploads', express.static(uploadsDir))
