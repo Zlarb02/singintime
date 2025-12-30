@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect } from 'react'
+import { memo, useState, useRef, useEffect, useCallback } from 'react'
 import { SyllableCell } from './SyllableCell'
 import type { Measure, Syllable, NoteDuration, TimeSignature } from '../../types'
 import { getBeatsPerMeasure, getMeasureTotalBeats, isMeasureComplete, toggleTriplet } from '../../types'
@@ -19,6 +19,7 @@ interface MeasureRowProps {
   onAddSyllable: (partial?: Partial<Syllable>) => void
   onUpdateSyllable: (syllableId: string, updates: Partial<Syllable>) => void
   onRemoveSyllable: (syllableId: string) => void
+  onReorderSyllables: (fromIndex: number, toIndex: number) => void
   onSetMeasureTempo: (tempo: number | undefined) => void
   onRemoveMeasure: () => void
   onPlayFromMeasure: () => void
@@ -49,6 +50,7 @@ export const MeasureRow = memo(function MeasureRow({
   onAddSyllable,
   onUpdateSyllable,
   onRemoveSyllable,
+  onReorderSyllables,
   onSetMeasureTempo,
   onRemoveMeasure,
   onPlayFromMeasure,
@@ -72,6 +74,26 @@ export const MeasureRow = memo(function MeasureRow({
   // Dropdown menu state
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // Drag and drop state
+  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
+  const handleDragStart = useCallback((index: number) => {
+    setDragFromIndex(index)
+  }, [])
+
+  const handleDragOver = useCallback((index: number) => {
+    setDragOverIndex(index)
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    if (dragFromIndex !== null && dragOverIndex !== null && dragFromIndex !== dragOverIndex) {
+      onReorderSyllables(dragFromIndex, dragOverIndex)
+    }
+    setDragFromIndex(null)
+    setDragOverIndex(null)
+  }, [dragFromIndex, dragOverIndex, onReorderSyllables])
 
   // Close menu on click outside
   useEffect(() => {
@@ -288,11 +310,13 @@ export const MeasureRow = memo(function MeasureRow({
 
         {/* Syllables */}
         <div className="flex items-center gap-1 pt-4 relative z-10">
-          {measure.syllables.map((syllable) => (
+          {measure.syllables.map((syllable, index) => (
             <SyllableCell
               key={syllable.id}
               syllable={syllable}
+              index={index}
               isSelected={selectedSyllableId === syllable.id}
+              isDragOver={dragOverIndex === index && dragFromIndex !== index}
               onClick={() => onSelectSyllable(syllable.id)}
               onTextChange={(text) => onUpdateSyllable(syllable.id, { text, rest: text === '' })}
               onDurationChange={(duration) => onUpdateSyllable(syllable.id, { duration })}
@@ -300,6 +324,9 @@ export const MeasureRow = memo(function MeasureRow({
               onToggleTied={() => onUpdateSyllable(syllable.id, { tied: !syllable.tied })}
               onToggleTriplet={() => onUpdateSyllable(syllable.id, { duration: toggleTriplet(syllable.duration) })}
               onDelete={() => onRemoveSyllable(syllable.id)}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
               baseWidth={baseWidth}
             />
           ))}

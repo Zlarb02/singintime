@@ -29,6 +29,7 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
     addSyllable,
     updateSyllable,
     removeSyllable,
+    reorderSyllables,
     getMeasureEffectiveTempo,
     getMeasureEffectiveTimeSignature,
     // Measure manipulation
@@ -354,6 +355,7 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
             onAddSyllable={readOnly ? () => {} : (partial) => addSyllable(measure.id, partial)}
             onUpdateSyllable={readOnly ? () => {} : (syllableId, updates) => updateSyllable(measure.id, syllableId, updates)}
             onRemoveSyllable={readOnly ? () => {} : (syllableId) => removeSyllable(measure.id, syllableId)}
+            onReorderSyllables={readOnly ? () => {} : (fromIndex, toIndex) => reorderSyllables(measure.id, fromIndex, toIndex)}
             onSetMeasureTempo={readOnly ? () => {} : (tempo) => setMeasureTempo(measure.id, tempo)}
             onRemoveMeasure={readOnly ? () => {} : () => removeMeasure(measure.id)}
             onPlayFromMeasure={() => handlePlayFromMeasure(index)}
@@ -414,9 +416,9 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
         {/* Help text - only show in edit mode */}
         {!readOnly && (
           <div className="text-center text-xs text-[var(--color-text-faint)] space-y-1 pb-4">
-            <p>Double-clic sur une syllabe pour éditer le texte | Survoler une mesure pour les actions</p>
+            <p>Double-clic sur une syllabe pour éditer | Glisser-déposer pour réordonner</p>
             <p className="opacity-70">
-              <span className="font-mono">Ctrl+C</span> copier | <span className="font-mono">Ctrl+V</span> coller | <span className="font-mono">Ctrl+D</span> dupliquer | <span className="font-mono">Ctrl+Shift+fleches</span> déplacer
+              <span className="font-mono">Ctrl+C</span> copier | <span className="font-mono">Ctrl+V</span> coller | <span className="font-mono">Ctrl+D</span> dupliquer | <span className="font-mono">Ctrl+Shift+↑↓</span> déplacer mesure
             </p>
           </div>
         )}

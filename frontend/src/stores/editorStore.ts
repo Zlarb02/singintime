@@ -112,6 +112,7 @@ interface EditorState {
   toggleSyllableDotted: (measureId: string, syllableId: string) => void
   toggleSyllableTied: (measureId: string, syllableId: string) => void
   toggleSyllableTriplet: (measureId: string, syllableId: string) => void
+  reorderSyllables: (measureId: string, fromIndex: number, toIndex: number) => void
 
   // Actions - Bulk
   importText: (text: string) => void
@@ -488,6 +489,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const newDuration = toggleTriplet(syllable.duration)
       get().updateSyllable(measureId, syllableId, { duration: newDuration })
     }
+  },
+
+  reorderSyllables: (measureId, fromIndex, toIndex) => {
+    if (fromIndex === toIndex) return
+
+    const measures = get().measures.map(m => {
+      if (m.id !== measureId) return m
+
+      const syllables = [...m.syllables]
+      const [moved] = syllables.splice(fromIndex, 1)
+      syllables.splice(toIndex, 0, moved)
+
+      return { ...m, syllables }
+    })
+
+    set({ measures, isDirty: true })
   },
 
   // Bulk actions

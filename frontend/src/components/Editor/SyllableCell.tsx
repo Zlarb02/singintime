@@ -5,7 +5,9 @@ import { usePlaybackStore } from '../../stores/playbackStore'
 
 interface SyllableCellProps {
   syllable: Syllable
+  index: number
   isSelected: boolean
+  isDragOver: boolean
   onClick: () => void
   onTextChange: (text: string) => void
   onDurationChange: (duration: NoteDuration) => void
@@ -13,13 +15,18 @@ interface SyllableCellProps {
   onToggleTied: () => void
   onToggleTriplet: () => void
   onDelete: () => void
+  onDragStart: (index: number) => void
+  onDragOver: (index: number) => void
+  onDragEnd: () => void
   baseWidth: number  // Width for 1 beat
 }
 
 // Memoized component - only re-renders when its specific props change
 export const SyllableCell = memo(function SyllableCell({
   syllable,
+  index,
   isSelected,
+  isDragOver,
   onClick,
   onTextChange,
   onDurationChange,
@@ -27,6 +34,9 @@ export const SyllableCell = memo(function SyllableCell({
   onToggleTied,
   onToggleTriplet,
   onDelete,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
   baseWidth
 }: SyllableCellProps) {
   // Subscribe directly to playback store - only re-render when THIS syllable's active state changes
@@ -73,8 +83,28 @@ export const SyllableCell = memo(function SyllableCell({
     }
   }
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index.toString())
+    onDragStart(index)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    onDragOver(index)
+  }
+
+  const handleDragEnd = () => {
+    onDragEnd()
+  }
+
   return (
     <div
+      draggable={!isEditing}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
       onClick={onClick}
       onDoubleClick={handleDoubleClick}
       className={`
@@ -82,9 +112,11 @@ export const SyllableCell = memo(function SyllableCell({
         h-16 rounded-lg border-2 transition-all cursor-pointer
         ${isActive
           ? 'bg-amber-500/30 border-amber-500 shadow-lg shadow-amber-500/20'
-          : isSelected
-            ? 'bg-amber-500/10 border-amber-500/50'
-            : 'bg-[var(--color-bg-tertiary)]/50 border-[var(--color-border)]/50 hover:border-[var(--color-border)]'
+          : isDragOver
+            ? 'bg-blue-500/20 border-blue-500 border-dashed'
+            : isSelected
+              ? 'bg-amber-500/10 border-amber-500/50'
+              : 'bg-[var(--color-bg-tertiary)]/50 border-[var(--color-border)]/50 hover:border-[var(--color-border)]'
         }
         ${syllable.rest ? 'opacity-50' : ''}
         ${syllable.tied ? 'border-r-0 rounded-r-none' : ''}
