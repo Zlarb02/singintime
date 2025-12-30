@@ -19,6 +19,7 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
     currentDuration,
     defaultTempo,
     defaultTimeSignature,
+    clipboardMeasure,
     setSelectedSyllable,
     setCurrentDuration,
     addMeasures,
@@ -29,7 +30,15 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
     updateSyllable,
     removeSyllable,
     getMeasureEffectiveTempo,
-    getMeasureEffectiveTimeSignature
+    getMeasureEffectiveTimeSignature,
+    // Measure manipulation
+    copyMeasure,
+    pasteMeasure,
+    duplicateMeasure,
+    insertMeasureBefore,
+    insertMeasureAfter,
+    moveMeasureUp,
+    moveMeasureDown
   } = useEditorStore()
 
   const { duration: audioDuration, isPlaying, currentTime: storeTime } = useAudioStore()
@@ -202,6 +211,58 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
     setShowAddMenu(false)
   }
 
+  // Find measure containing selected syllable
+  const getSelectedMeasure = useCallback(() => {
+    if (!selectedSyllableId) return null
+    return measures.find(m => m.syllables.some(s => s.id === selectedSyllableId))
+  }, [measures, selectedSyllableId])
+
+  // Keyboard shortcuts for measure manipulation
+  useEffect(() => {
+    if (readOnly) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      const measure = getSelectedMeasure()
+      if (!measure) return
+
+      // Ctrl/Cmd + C: Copy measure
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey) {
+        e.preventDefault()
+        copyMeasure(measure.id)
+      }
+      // Ctrl/Cmd + V: Paste measure after current
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey) {
+        if (clipboardMeasure) {
+          e.preventDefault()
+          pasteMeasure(measure.id)
+        }
+      }
+      // Ctrl/Cmd + D: Duplicate measure
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault()
+        duplicateMeasure(measure.id)
+      }
+      // Ctrl/Cmd + Shift + ArrowUp: Move measure up
+      else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'ArrowUp') {
+        e.preventDefault()
+        moveMeasureUp(measure.id)
+      }
+      // Ctrl/Cmd + Shift + ArrowDown: Move measure down
+      else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'ArrowDown') {
+        e.preventDefault()
+        moveMeasureDown(measure.id)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [readOnly, getSelectedMeasure, copyMeasure, pasteMeasure, duplicateMeasure, moveMeasureUp, moveMeasureDown, clipboardMeasure])
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar - fixed header, only show in edit mode */}
@@ -280,11 +341,15 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
             key={measure.id}
             measure={measure}
             measureIndex={index}
+            measureCount={measures.length}
             effectiveTempo={getMeasureEffectiveTempo(measure)}
             effectiveTimeSignature={getMeasureEffectiveTimeSignature(measure)}
             selectedSyllableId={readOnly ? null : selectedSyllableId}
             currentDuration={currentDuration}
             measureStartTimeMs={measureStartTimes[index] || 0}
+            isPlaying={isPlaying}
+            hasClipboard={!!clipboardMeasure}
+            readOnly={readOnly}
             onSelectSyllable={readOnly ? () => {} : setSelectedSyllable}
             onAddSyllable={readOnly ? () => {} : (partial) => addSyllable(measure.id, partial)}
             onUpdateSyllable={readOnly ? () => {} : (syllableId, updates) => updateSyllable(measure.id, syllableId, updates)}
@@ -292,8 +357,15 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
             onSetMeasureTempo={readOnly ? () => {} : (tempo) => setMeasureTempo(measure.id, tempo)}
             onRemoveMeasure={readOnly ? () => {} : () => removeMeasure(measure.id)}
             onPlayFromMeasure={() => handlePlayFromMeasure(index)}
-            isPlaying={isPlaying}
             onStop={stop}
+            // Measure manipulation
+            onCopyMeasure={() => copyMeasure(measure.id)}
+            onPasteMeasure={() => pasteMeasure(measure.id)}
+            onDuplicateMeasure={() => duplicateMeasure(measure.id)}
+            onInsertMeasureBefore={() => insertMeasureBefore(measure.id)}
+            onInsertMeasureAfter={() => insertMeasureAfter(measure.id)}
+            onMoveMeasureUp={() => moveMeasureUp(measure.id)}
+            onMoveMeasureDown={() => moveMeasureDown(measure.id)}
           />
         ))}
 
@@ -342,8 +414,10 @@ export function MeasureGrid({ readOnly = false }: MeasureGridProps) {
         {/* Help text - only show in edit mode */}
         {!readOnly && (
           <div className="text-center text-xs text-[var(--color-text-faint)] space-y-1 pb-4">
-            <p>Double-clic sur une syllabe pour éditer le texte</p>
-            <p>Sélectionner une syllabe pour modifier sa durée ou la supprimer</p>
+            <p>Double-clic sur une syllabe pour éditer le texte | Survoler une mesure pour les actions</p>
+            <p className="opacity-70">
+              <span className="font-mono">Ctrl+C</span> copier | <span className="font-mono">Ctrl+V</span> coller | <span className="font-mono">Ctrl+D</span> dupliquer | <span className="font-mono">Ctrl+Shift+fleches</span> déplacer
+            </p>
           </div>
         )}
         </div>

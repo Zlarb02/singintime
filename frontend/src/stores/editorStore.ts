@@ -57,6 +57,9 @@ interface EditorState {
   selectedSyllableId: string | null
   currentDuration: NoteDuration
 
+  // Clipboard
+  clipboardMeasure: Measure | null
+
   // Actions - Mode
   setMode: (mode: EditorMode) => void
   setInputMode: (mode: InputMode) => void
@@ -89,6 +92,15 @@ interface EditorState {
   setMeasureTempo: (id: string, tempo: number | undefined) => void
   setMeasureTimeSignature: (id: string, sig: TimeSignature | undefined) => void
   getFilledMeasureCount: () => number
+
+  // Actions - Measure manipulation
+  copyMeasure: (id: string) => void
+  pasteMeasure: (afterId: string) => void
+  duplicateMeasure: (id: string) => void
+  insertMeasureBefore: (id: string) => void
+  insertMeasureAfter: (id: string) => void
+  moveMeasureUp: (id: string) => void
+  moveMeasureDown: (id: string) => void
 
   // Actions - Syllables
   addSyllable: (measureId: string, syllable?: Partial<Syllable>) => void
@@ -169,6 +181,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedMeasureId: null,
   selectedSyllableId: null,
   currentDuration: 'quarter',
+  clipboardMeasure: null,
 
   // Mode actions
   setMode: (mode) => set({ mode }),
@@ -273,6 +286,117 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   getFilledMeasureCount: () => {
     return get().measures.filter(m => m.syllables.length > 0).length
+  },
+
+  // Measure manipulation actions
+  copyMeasure: (id) => {
+    const measure = get().measures.find(m => m.id === id)
+    if (measure) {
+      // Deep copy the measure
+      set({ clipboardMeasure: JSON.parse(JSON.stringify(measure)) })
+    }
+  },
+
+  pasteMeasure: (afterId) => {
+    const { clipboardMeasure, measures } = get()
+    if (!clipboardMeasure) return
+
+    const index = measures.findIndex(m => m.id === afterId)
+    if (index === -1) return
+
+    // Create new measure with new IDs
+    const newMeasure: Measure = {
+      ...JSON.parse(JSON.stringify(clipboardMeasure)),
+      id: crypto.randomUUID(),
+      index: index + 1,
+      syllables: clipboardMeasure.syllables.map(s => ({
+        ...s,
+        id: crypto.randomUUID()
+      }))
+    }
+
+    const newMeasures = [...measures]
+    newMeasures.splice(index + 1, 0, newMeasure)
+    // Re-index
+    newMeasures.forEach((m, i) => m.index = i)
+    set({ measures: newMeasures, isDirty: true })
+  },
+
+  duplicateMeasure: (id) => {
+    const measures = get().measures
+    const index = measures.findIndex(m => m.id === id)
+    if (index === -1) return
+
+    const original = measures[index]
+    const newMeasure: Measure = {
+      ...JSON.parse(JSON.stringify(original)),
+      id: crypto.randomUUID(),
+      index: index + 1,
+      syllables: original.syllables.map(s => ({
+        ...s,
+        id: crypto.randomUUID()
+      }))
+    }
+
+    const newMeasures = [...measures]
+    newMeasures.splice(index + 1, 0, newMeasure)
+    // Re-index
+    newMeasures.forEach((m, i) => m.index = i)
+    set({ measures: newMeasures, isDirty: true })
+  },
+
+  insertMeasureBefore: (id) => {
+    const measures = get().measures
+    const index = measures.findIndex(m => m.id === id)
+    if (index === -1) return
+
+    const newMeasure = createMeasure(index)
+    const newMeasures = [...measures]
+    newMeasures.splice(index, 0, newMeasure)
+    // Re-index
+    newMeasures.forEach((m, i) => m.index = i)
+    set({ measures: newMeasures, isDirty: true })
+  },
+
+  insertMeasureAfter: (id) => {
+    const measures = get().measures
+    const index = measures.findIndex(m => m.id === id)
+    if (index === -1) return
+
+    const newMeasure = createMeasure(index + 1)
+    const newMeasures = [...measures]
+    newMeasures.splice(index + 1, 0, newMeasure)
+    // Re-index
+    newMeasures.forEach((m, i) => m.index = i)
+    set({ measures: newMeasures, isDirty: true })
+  },
+
+  moveMeasureUp: (id) => {
+    const measures = get().measures
+    const index = measures.findIndex(m => m.id === id)
+    if (index <= 0) return // Already at top
+
+    const newMeasures = [...measures]
+    const temp = newMeasures[index - 1]
+    newMeasures[index - 1] = newMeasures[index]
+    newMeasures[index] = temp
+    // Re-index
+    newMeasures.forEach((m, i) => m.index = i)
+    set({ measures: newMeasures, isDirty: true })
+  },
+
+  moveMeasureDown: (id) => {
+    const measures = get().measures
+    const index = measures.findIndex(m => m.id === id)
+    if (index === -1 || index >= measures.length - 1) return // Already at bottom
+
+    const newMeasures = [...measures]
+    const temp = newMeasures[index + 1]
+    newMeasures[index + 1] = newMeasures[index]
+    newMeasures[index] = temp
+    // Re-index
+    newMeasures.forEach((m, i) => m.index = i)
+    set({ measures: newMeasures, isDirty: true })
   },
 
   removeMeasure: (id) => {

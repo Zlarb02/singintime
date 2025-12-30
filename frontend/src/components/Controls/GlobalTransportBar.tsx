@@ -4,6 +4,7 @@ import { useAudioStore } from '../../stores/audioStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { useAudioPlayer } from '../../hooks/useAudioPlayer'
 import { useMetronome } from '../../hooks/useMetronome'
+import { useFlowBeep } from '../../hooks/useFlowBeep'
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -11,26 +12,118 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+// Volume slider row component for cleaner UI
+function VolumeRow({
+  icon,
+  label,
+  enabled,
+  onToggle,
+  volume,
+  onVolumeChange,
+  color = 'amber'
+}: {
+  icon: React.ReactNode
+  label: string
+  enabled: boolean
+  onToggle: () => void
+  volume: number
+  onVolumeChange: (v: number) => void
+  color?: 'amber' | 'blue' | 'purple'
+}) {
+  const colorClasses = {
+    amber: 'text-amber-400',
+    blue: 'text-blue-400',
+    purple: 'text-purple-400'
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={onToggle}
+        className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-colors ${
+          enabled
+            ? `bg-${color}-500/20 ${colorClasses[color]}`
+            : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)]'
+        }`}
+        title={enabled ? 'Désactiver' : 'Activer'}
+      >
+        {icon}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <span className={`text-xs font-medium ${enabled ? colorClasses[color] : 'text-[var(--color-text-muted)]'}`}>
+            {label}
+          </span>
+          <span className="text-xs text-[var(--color-text-muted)] tabular-nums">
+            {Math.round(volume * 100)}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={volume}
+          onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+          className={`w-full h-1.5 accent-${color}-500 ${!enabled && 'opacity-50'}`}
+          disabled={!enabled}
+        />
+      </div>
+    </div>
+  )
+}
+
 export function GlobalTransportBar() {
   const location = useLocation()
-  const { isPlaying, currentTime, duration, metronomeEnabled, metronomeVolume, setMetronomeVolume, toggleMetronome } = useAudioStore()
+  const {
+    isPlaying,
+    currentTime,
+    duration,
+    metronomeEnabled,
+    metronomeVolume,
+    beepEnabled,
+    beepVolume,
+    setMetronomeVolume,
+    toggleMetronome,
+    setBeepVolume,
+    toggleBeep
+  } = useAudioStore()
   const { audioUrl, title, defaultTempo, mode } = useEditorStore()
   const { play, pause, stop, seek, isReady, setVolume } = useAudioPlayer()
-  // Use syncToAudio mode when there's audio - keeps metronome locked to audio timeline
+
+  // Use syncToAudio mode when there's audio
   const { start: startMetronome, stop: stopMetronome } = useMetronome({ syncToAudio: !!audioUrl })
+  const { start: startBeep, stop: stopBeep } = useFlowBeep({ syncToAudio: !!audioUrl })
+
   const [showVolumePopup, setShowVolumePopup] = useState(false)
   const [audioVolume, setAudioVolume] = useState(0.8)
   const wasPlayingRef = useRef(false)
+  const popupRef = useRef<HTMLDivElement>(null)
 
-  // Sync metronome with playback state (works with or without audio)
+  // Sync metronome and beep with playback state
   useEffect(() => {
     if (isPlaying && !wasPlayingRef.current) {
       startMetronome()
+      startBeep()
     } else if (!isPlaying && wasPlayingRef.current) {
       stopMetronome()
+      stopBeep()
     }
     wasPlayingRef.current = isPlaying
-  }, [isPlaying, startMetronome, stopMetronome])
+  }, [isPlaying, startMetronome, stopMetronome, startBeep, stopBeep])
+
+  // Close popup on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setShowVolumePopup(false)
+      }
+    }
+    if (showVolumePopup) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showVolumePopup])
 
   // Hide on setup wizard and non-editor pages
   const isEditorOrViewer = location.pathname.startsWith('/editor') || location.pathname.startsWith('/view')
@@ -49,6 +142,9 @@ export function GlobalTransportBar() {
     const percent = x / rect.width
     seek(percent * duration)
   }
+
+  // Count active audio sources for indicator
+  const activeCount = [audioUrl ? true : false, metronomeEnabled, beepEnabled].filter(Boolean).length
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
@@ -126,102 +222,132 @@ export function GlobalTransportBar() {
                 {title || 'Sans titre'}
               </p>
               <p className="text-xs text-[var(--color-text-muted)]">
-                {defaultTempo} BPM {!audioUrl && '• Métronome'}
+                {defaultTempo} BPM
               </p>
             </div>
           </div>
         </div>
 
-        {/* Volume controls */}
-        <div className="relative">
+        {/* Quick toggle buttons */}
+        <div className="flex items-center gap-1">
+          {/* Metronome quick toggle */}
+          <button
+            onClick={toggleMetronome}
+            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
+              metronomeEnabled
+                ? 'bg-blue-500/20 text-blue-400'
+                : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+            }`}
+            title={metronomeEnabled ? 'Métronome ON' : 'Métronome OFF'}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+
+          {/* Flow beep quick toggle */}
+          <button
+            onClick={toggleBeep}
+            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
+              beepEnabled
+                ? 'bg-purple-500/20 text-purple-400'
+                : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+            }`}
+            title={beepEnabled ? 'Flow preview ON' : 'Flow preview OFF'}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4 0h8m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Volume controls popup */}
+        <div className="relative" ref={popupRef}>
           <button
             onClick={() => setShowVolumePopup(!showVolumePopup)}
-            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors relative ${
               showVolumePopup
                 ? 'bg-amber-500/20 text-amber-400'
                 : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
             }`}
-            title="Volume"
+            title="Mixer audio"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
+            {/* Active sources indicator */}
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {activeCount}
+            </span>
           </button>
 
-          {/* Volume popup */}
+          {/* Volume popup - redesigned */}
           {showVolumePopup && (
-            <div className="absolute bottom-full right-0 mb-2 p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl shadow-xl min-w-[200px]">
-              {/* Audio volume */}
-              {audioUrl && (
-                <div className="flex items-center gap-3 mb-3">
-                  <svg className="w-4 h-4 text-[var(--color-text-muted)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-                  </svg>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={audioVolume}
-                    onChange={(e) => {
-                      const vol = parseFloat(e.target.value)
-                      setAudioVolume(vol)
-                      setVolume?.(vol)
-                    }}
-                    className="flex-1 h-1.5 accent-amber-500"
-                  />
-                  <span className="text-xs text-[var(--color-text-muted)] w-8">{Math.round(audioVolume * 100)}%</span>
-                </div>
-              )}
+            <div className="absolute bottom-full right-0 mb-2 p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl shadow-xl w-72">
+              <h3 className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-4">
+                Mixer Audio
+              </h3>
 
-              {/* Metronome volume */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={toggleMetronome}
-                  className={`w-4 h-4 shrink-0 ${metronomeEnabled ? 'text-amber-400' : 'text-[var(--color-text-muted)]'}`}
-                  title={metronomeEnabled ? 'Désactiver' : 'Activer'}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={metronomeVolume}
-                  onChange={(e) => setMetronomeVolume(parseFloat(e.target.value))}
-                  className="flex-1 h-1.5 accent-amber-500"
-                  disabled={!metronomeEnabled}
+              <div className="space-y-4">
+                {/* Music volume - only show when audio is loaded */}
+                {audioUrl && (
+                  <VolumeRow
+                    icon={
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                      </svg>
+                    }
+                    label="Musique"
+                    enabled={true}
+                    onToggle={() => {}}
+                    volume={audioVolume}
+                    onVolumeChange={(v) => {
+                      setAudioVolume(v)
+                      setVolume?.(v)
+                    }}
+                    color="amber"
+                  />
+                )}
+
+                {/* Metronome volume */}
+                <VolumeRow
+                  icon={
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  }
+                  label="Métronome"
+                  enabled={metronomeEnabled}
+                  onToggle={toggleMetronome}
+                  volume={metronomeVolume}
+                  onVolumeChange={setMetronomeVolume}
+                  color="blue"
                 />
-                <span className="text-xs text-[var(--color-text-muted)] w-8">{Math.round(metronomeVolume * 100)}%</span>
+
+                {/* Flow beep volume */}
+                <VolumeRow
+                  icon={
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4 0h8m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  }
+                  label="Flow Preview"
+                  enabled={beepEnabled}
+                  onToggle={toggleBeep}
+                  volume={beepVolume}
+                  onVolumeChange={setBeepVolume}
+                  color="purple"
+                />
               </div>
+
+              {/* Help text */}
+              <p className="mt-4 pt-3 border-t border-[var(--color-border)]/50 text-[10px] text-[var(--color-text-faint)] leading-relaxed">
+                <span className="text-blue-400">Métronome</span> = clic sur chaque temps<br/>
+                <span className="text-purple-400">Flow Preview</span> = bip sur chaque syllabe avec texte
+              </p>
             </div>
           )}
         </div>
-
-        {/* Metronome toggle */}
-        <button
-          onClick={toggleMetronome}
-          className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
-            metronomeEnabled
-              ? 'bg-amber-500/20 text-amber-400'
-              : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-          }`}
-          title={metronomeEnabled ? 'Métronome activé' : 'Métronome désactivé'}
-        >
-          {metronomeEnabled ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-            </svg>
-          )}
-        </button>
       </div>
     </div>
   )

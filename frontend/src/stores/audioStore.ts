@@ -11,6 +11,10 @@ interface AudioState {
   metronomeEnabled: boolean
   metronomeVolume: number
 
+  // Flow beep (syllable preview)
+  beepEnabled: boolean
+  beepVolume: number
+
   // Tempo detection
   isDetectingTempo: boolean
   detectedTempo: number | null
@@ -24,6 +28,9 @@ interface AudioState {
   setMetronomeEnabled: (enabled: boolean) => void
   setMetronomeVolume: (volume: number) => void
   toggleMetronome: () => void
+  setBeepEnabled: (enabled: boolean) => void
+  setBeepVolume: (volume: number) => void
+  toggleBeep: () => void
   setIsDetectingTempo: (detecting: boolean) => void
   setDetectedTempo: (tempo: number | null, offset?: number | null) => void
   reset: () => void
@@ -36,6 +43,8 @@ export const useAudioStore = create<AudioState>((set) => ({
   duration: 0,
   metronomeEnabled: true,
   metronomeVolume: 0.5,
+  beepEnabled: true,
+  beepVolume: 0.6,
   isDetectingTempo: false,
   detectedTempo: null,
   detectedOffset: null,
@@ -47,6 +56,9 @@ export const useAudioStore = create<AudioState>((set) => ({
   setMetronomeEnabled: (metronomeEnabled) => set({ metronomeEnabled }),
   setMetronomeVolume: (metronomeVolume) => set({ metronomeVolume }),
   toggleMetronome: () => set((state) => ({ metronomeEnabled: !state.metronomeEnabled })),
+  setBeepEnabled: (beepEnabled) => set({ beepEnabled }),
+  setBeepVolume: (beepVolume) => set({ beepVolume }),
+  toggleBeep: () => set((state) => ({ beepEnabled: !state.beepEnabled })),
   setIsDetectingTempo: (isDetectingTempo) => set({ isDetectingTempo }),
   setDetectedTempo: (detectedTempo, detectedOffset = null) => set({ detectedTempo, detectedOffset }),
   reset: () => set({
