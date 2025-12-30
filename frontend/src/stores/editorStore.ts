@@ -12,7 +12,8 @@ import {
   createSyllable,
   getSyllableDurationInBeats,
   getMeasureTotalBeats,
-  getBeatsPerMeasure
+  getBeatsPerMeasure,
+  toggleTriplet
 } from '../types'
 
 // ============================================
@@ -110,6 +111,7 @@ interface EditorState {
   setSyllableDuration: (measureId: string, syllableId: string, duration: NoteDuration) => void
   toggleSyllableDotted: (measureId: string, syllableId: string) => void
   toggleSyllableTied: (measureId: string, syllableId: string) => void
+  toggleSyllableTriplet: (measureId: string, syllableId: string) => void
 
   // Actions - Bulk
   importText: (text: string) => void
@@ -476,6 +478,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const syllable = measure?.syllables.find(s => s.id === syllableId)
     if (syllable) {
       get().updateSyllable(measureId, syllableId, { tied: !syllable.tied })
+    }
+  },
+
+  toggleSyllableTriplet: (measureId, syllableId) => {
+    const measure = get().measures.find(m => m.id === measureId)
+    const syllable = measure?.syllables.find(s => s.id === syllableId)
+    if (syllable) {
+      const newDuration = toggleTriplet(syllable.duration)
+      get().updateSyllable(measureId, syllableId, { duration: newDuration })
     }
   },
 

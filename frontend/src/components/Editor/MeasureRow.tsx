@@ -1,7 +1,7 @@
 import { memo, useState, useRef, useEffect } from 'react'
 import { SyllableCell } from './SyllableCell'
 import type { Measure, Syllable, NoteDuration, TimeSignature } from '../../types'
-import { getBeatsPerMeasure, getMeasureTotalBeats, isMeasureComplete } from '../../types'
+import { getBeatsPerMeasure, getMeasureTotalBeats, isMeasureComplete, toggleTriplet } from '../../types'
 
 interface MeasureRowProps {
   measure: Measure
@@ -298,6 +298,7 @@ export const MeasureRow = memo(function MeasureRow({
               onDurationChange={(duration) => onUpdateSyllable(syllable.id, { duration })}
               onToggleDotted={() => onUpdateSyllable(syllable.id, { dotted: !syllable.dotted })}
               onToggleTied={() => onUpdateSyllable(syllable.id, { tied: !syllable.tied })}
+              onToggleTriplet={() => onUpdateSyllable(syllable.id, { duration: toggleTriplet(syllable.duration) })}
               onDelete={() => onRemoveSyllable(syllable.id)}
               baseWidth={baseWidth}
             />

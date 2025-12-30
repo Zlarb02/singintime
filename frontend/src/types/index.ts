@@ -274,3 +274,33 @@ export function halveDuration(duration: NoteDuration): NoteDuration {
   if (idx <= 0) return duration
   return order[idx - 1]
 }
+
+// Mapping entre durées normales et triplets
+const NORMAL_TO_TRIPLET: Partial<Record<NoteDuration, NoteDuration>> = {
+  'half': 'triplet-half',
+  'quarter': 'triplet-quarter',
+  'eighth': 'triplet-eighth',
+  'sixteenth': 'triplet-sixteenth',
+}
+
+const TRIPLET_TO_NORMAL: Partial<Record<NoteDuration, NoteDuration>> = {
+  'triplet-half': 'half',
+  'triplet-quarter': 'quarter',
+  'triplet-eighth': 'eighth',
+  'triplet-sixteenth': 'sixteenth',
+}
+
+// Basculer entre durée normale et triolet
+export function toggleTriplet(duration: NoteDuration): NoteDuration {
+  const isTriplet = duration.startsWith('triplet')
+  if (isTriplet) {
+    return TRIPLET_TO_NORMAL[duration] ?? duration
+  } else {
+    return NORMAL_TO_TRIPLET[duration] ?? duration
+  }
+}
+
+// Vérifier si une durée est un triolet
+export function isTripletDuration(duration: NoteDuration): boolean {
+  return duration.startsWith('triplet')
+}

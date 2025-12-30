@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, memo } from 'react'
 import type { Syllable, NoteDuration } from '../../types'
-import { DURATION_INFO, getSyllableDurationInBeats, doubleDuration, halveDuration } from '../../types'
+import { DURATION_INFO, getSyllableDurationInBeats, doubleDuration, halveDuration, isTripletDuration } from '../../types'
 import { usePlaybackStore } from '../../stores/playbackStore'
 
 interface SyllableCellProps {
@@ -11,6 +11,7 @@ interface SyllableCellProps {
   onDurationChange: (duration: NoteDuration) => void
   onToggleDotted: () => void
   onToggleTied: () => void
+  onToggleTriplet: () => void
   onDelete: () => void
   baseWidth: number  // Width for 1 beat
 }
@@ -24,6 +25,7 @@ export const SyllableCell = memo(function SyllableCell({
   onDurationChange,
   onToggleDotted,
   onToggleTied,
+  onToggleTriplet,
   onDelete,
   baseWidth
 }: SyllableCellProps) {
@@ -163,6 +165,17 @@ export const SyllableCell = memo(function SyllableCell({
             title="Pointée (+50%)"
           >
             .
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleTriplet() }}
+            className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold transition-colors ${
+              isTripletDuration(syllable.duration)
+                ? 'bg-purple-500/20 text-purple-400'
+                : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)]'
+            }`}
+            title="Triolet (×⅔)"
+          >
+            ³
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onToggleTied() }}
